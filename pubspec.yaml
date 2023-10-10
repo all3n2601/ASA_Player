@@ -1,0 +1,35 @@
+name: asa_video_and_music
+description: A new Flutter project.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.1.2 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  google_fonts: 
+
+  path_provider: 
+
+  video_player:  
+
+  file_picker:  
+  
+  permission_handler:
+
+  appinio_video_player:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  assets:
+    - 'assets/videos/sample.mp4'
+  uses-material-design: true
+
+
