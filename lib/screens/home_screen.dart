@@ -1,9 +1,10 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'dart:io';
 import 'dart:ui';
-import 'package:appinio_video_player/appinio_video_player.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,24 +14,35 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late CustomVideoPlayerController _customVideoPlayerController;
+  late List<File> _files = [];
 
-  String assetVideoPath = "assets/videos/sample.mp4";
+  Future<void> fetchMediaFiles() async {
+    final directory = await getExternalStorageDirectory();
+    if (directory == null) {
+      return;
+    }
+
+    try {
+      final files = directory!.listSync(recursive: true).where((entity) {
+        return entity is File &&
+            (entity.path.endsWith('.mp3') || entity.path.endsWith('.mp4'));
+      }).cast<File>().toList();
+
+
+
+      setState(() {
+        _files = files;
+
+      });
+    } catch (e) {
+      print('Error fetching files: $e');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    initializeVideoPlayer();
-  }
-
-  void initializeVideoPlayer() {
-    VideoPlayerController videoPlayerController;
-    videoPlayerController = VideoPlayerController.asset(assetVideoPath)
-      ..initialize().then((value) {
-        setState(() {});
-      });
-    _customVideoPlayerController = CustomVideoPlayerController(
-        context: context, videoPlayerController: videoPlayerController);
+    fetchMediaFiles();
   }
 
   @override
@@ -122,12 +134,20 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(
                 height: MediaQuery.of(context).size.height,
                 width: MediaQuery.of(context).size.width,
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                    children: [
-                    CustomVideoPlayer(customVideoPlayerController: _customVideoPlayerController),
-                ]
-              )
+                child: _files.isEmpty
+                    ? Center(
+                        child: Text('No media files found.'),
+                      )
+                    : ListView.builder(
+                        itemCount: _files.length,
+                        itemBuilder: (context, index) {
+                          final file = _files[index];
+                          return ListTile(
+
+                            title: Text(file.path),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -135,7 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.transparent,
-        onPressed: (){},
+        onPressed: () {
+          fetchMediaFiles();
+        },
         child: Icon(Icons.refresh),
       ),
     );
