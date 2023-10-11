@@ -22,6 +22,8 @@ dependencies:
 
   appinio_video_player:
 
+  video_thumbnail:
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,13 +1,15 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,26 +19,68 @@ class _HomeScreenState extends State<HomeScreen> {
   late List<File> _files = [];
 
   Future<void> fetchMediaFiles() async {
-    final directory = await getExternalStorageDirectory();
-    if (directory == null) {
-      return;
+    final directories = [
+      Directory('/storage/emulated/0/Download'),
+      Directory('/storage/emulated/0/DCIM'),
+      Directory('/storage/emulated/0/Movies'),
+      Directory('/storage/emulated/0/Documents'),
+      Directory('/storage/emulated/0/Music'),
+      Directory('/storage/emulated/0/Pictures'),
+      Directory('/storage/emulated/0/Recordings'),
+    ];
+
+    List<File> allFiles = [];
+
+    for (var directory in directories) {
+      try {
+        if (directory.existsSync()) {
+          // Check if the directory exists.
+          final files = directory
+              .listSync(recursive: true)
+              .where((entity) {
+                return entity is File &&
+                    (entity.path.endsWith('.mp3') ||
+                        entity.path.endsWith('.mp4'));
+              })
+              .cast<File>()
+              .toList();
+
+          allFiles.addAll(files);
+        } else {
+          print('Directory does not exist: ${directory.path}');
+        }
+      } catch (e) {
+        print('Error fetching files in $directory: $e');
+      }
     }
 
+    setState(() {
+      _files = allFiles;
+    });
+  }
+
+  Future<Uint8List?> generateVideoThumbnail(String videoPath) async {
+    final appDocumentsDirectory = await getApplicationDocumentsDirectory();
+    final thumbnailDirectory = appDocumentsDirectory.path;
     try {
-      final files = directory!.listSync(recursive: true).where((entity) {
-        return entity is File &&
-            (entity.path.endsWith('.mp3') || entity.path.endsWith('.mp4'));
-      }).cast<File>().toList();
+      final uint8List = await VideoThumbnail.thumbnailData(
+        video: videoPath,
+        imageFormat: ImageFormat.JPEG, // Use JPEG for higher quality
+        maxWidth: 1080, // Set your preferred width
+        quality: 100,
+        maxHeight: 720
+      );
 
-
-
-      setState(() {
-        _files = files;
-
-      });
+      if (uint8List != null) {
+        final File thumbnailFile = File('$thumbnailDirectory/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        await thumbnailFile.writeAsBytes(uint8List);
+        return uint8List;
+      }
     } catch (e) {
-      print('Error fetching files: $e');
+      print('Error generating thumbnail: $e');
     }
+
+    return null;
   }
 
   @override
@@ -132,23 +176,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               SizedBox(
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: _files.isEmpty
-                    ? Center(
-                        child: Text('No media files found.'),
-                      )
-                    : ListView.builder(
-                        itemCount: _files.length,
-                        itemBuilder: (context, index) {
-                          final file = _files[index];
-                          return ListTile(
-
-                            title: Text(file.path),
-                          );
-                        },
-                      ),
-              ),
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  child: _files.isEmpty
+                      ? Center(
+                          child: Text('No media files found.'),
+                        )
+                      : GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2),
+                          itemCount: _files.length,
+                          itemBuilder: (context, index) {
+                            final file = _files[index];
+                            return FutureBuilder<Uint8List?>(
+                              future: generateVideoThumbnail(file.path),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    snapshot.data != null) {
+                                  return GestureDetector(
+                                    onTap: (){},
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.memory(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  return Center(
+                                    child:
+                                        CircularProgressIndicator(), // You can use a loading indicator here
+                                  );
+                                }
+                              },
+                            );
+                          })),
             ],
           ),
         ),
