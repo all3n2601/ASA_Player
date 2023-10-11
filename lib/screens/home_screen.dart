@@ -3,10 +3,12 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
+import 'package:asa_video_and_music/utils/video_player_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path/path.dart' as path;
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({super.key});
@@ -34,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     for (var directory in directories) {
       try {
         if (directory.existsSync()) {
-          // Check if the directory exists.
           final files = directory
               .listSync(recursive: true)
               .where((entity) {
@@ -47,10 +48,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
           allFiles.addAll(files);
         } else {
-          print('Directory does not exist: ${directory.path}');
+          AlertDialog(
+            title: Text('Warning!'),
+            content: Text('Directory does not exist: ${directory.path}'),
+          );
         }
       } catch (e) {
-        print('Error fetching files in $directory: $e');
+        AlertDialog(
+          title: Text('Warning!'),
+          content: Text('Error fetching files in $directory: $e'),
+        );
       }
     }
 
@@ -184,11 +191,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : GridView.builder(
                           gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2),
+                              SliverGridDelegateWithFixedCrossAxisCount(mainAxisSpacing: 15,crossAxisSpacing: 15,
+                                  crossAxisCount: 2,childAspectRatio: 1),
                           itemCount: _files.length,
                           itemBuilder: (context, index) {
                             final file = _files[index];
+                            final fileName = path.basenameWithoutExtension(file.path);
                             return FutureBuilder<Uint8List?>(
                               future: generateVideoThumbnail(file.path),
                               builder: (context, snapshot) {
@@ -196,12 +204,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ConnectionState.done &&
                                     snapshot.data != null) {
                                   return GestureDetector(
-                                    onTap: (){},
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.memory(
-                                        snapshot.data!,
-                                        fit: BoxFit.cover,
+                                    onTap: (){
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => VideoPlayerPage(videoPath: file.path),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      decoration: ShapeDecoration(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        )
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius:BorderRadius.circular(16),
+                                            child: Image.memory(
+                                              snapshot.data!,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          Center(child: Text(fileName,style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500),)),
+                                        ],
                                       ),
                                     ),
                                   );

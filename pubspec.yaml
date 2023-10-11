@@ -10,19 +10,14 @@ dependencies:
   flutter:
     sdk: flutter
 
-  google_fonts: 
-
-  path_provider: 
-
-  video_player:  
-
-  file_picker:  
-  
+  google_fonts:
+  path_provider:
+  video_player:
+  file_picker:
   permission_handler:
-
   appinio_video_player:
-
   video_thumbnail:
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
