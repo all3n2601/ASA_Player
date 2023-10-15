@@ -40,12 +40,22 @@ class _HomeScreenState extends State<HomeScreen> {
               .listSync(recursive: true)
               .where((entity) {
                 return entity is File &&
-                    (entity.path.endsWith('.mp3') ||
-                        entity.path.endsWith('.mp4'));
+                    (entity.path.endsWith('.mpeg') ||
+                        entity.path.endsWith('.mp4') ||
+                        entity.path.endsWith('.mkv') ||
+                        entity.path.endsWith('.avi') ||
+                        entity.path.endsWith('.wmv') ||
+                        entity.path.endsWith('.flv') ||
+                        entity.path.endsWith('.mov') ||
+                        entity.path.endsWith('.3gp') ||
+                        entity.path.endsWith('.webm') ||
+                        entity.path.endsWith('.ogg') ||
+                        entity.path.endsWith('.mpeg') ||
+                        entity.path.endsWith('.ts') ||
+                        entity.path.endsWith('.vob'));
               })
               .cast<File>()
               .toList();
-
           allFiles.addAll(files);
         } else {
           AlertDialog(
@@ -66,20 +76,83 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Widget buildMediaItem(int index) {
+    final file = _files[index];
+    final fileName = path.basenameWithoutExtension(file.path);
+    return FutureBuilder<Uint8List?>(
+      future: generateVideoThumbnail(file.path),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.data != null) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => VideoPlayerPage(videoPath: file.path),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                 // Optional: Add a border
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      child: Image.memory(
+                        snapshot.data!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Center(
+                      child: Text(
+                        fileName,
+                        style: TextStyle(
+                          color: Colors.white, // Customize text color
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          return Center(
+            child:
+                CircularProgressIndicator(), // You can use a loading indicator here
+          );
+        }
+      },
+    );
+  }
+
   Future<Uint8List?> generateVideoThumbnail(String videoPath) async {
     final appDocumentsDirectory = await getApplicationDocumentsDirectory();
     final thumbnailDirectory = appDocumentsDirectory.path;
     try {
       final uint8List = await VideoThumbnail.thumbnailData(
-        video: videoPath,
-        imageFormat: ImageFormat.JPEG, // Use JPEG for higher quality
-        maxWidth: 1080, // Set your preferred width
-        quality: 100,
-        maxHeight: 720
-      );
+          video: videoPath,
+          imageFormat: ImageFormat.JPEG, // Use JPEG for higher quality
+          maxWidth: 1080, // Set your preferred width
+          quality: 100,
+          maxHeight: 720);
 
       if (uint8List != null) {
-        final File thumbnailFile = File('$thumbnailDirectory/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        final File thumbnailFile = File(
+            '$thumbnailDirectory/${DateTime.now().millisecondsSinceEpoch}.jpg');
         await thumbnailFile.writeAsBytes(uint8List);
         return uint8List;
       }
@@ -191,55 +264,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : GridView.builder(
                           gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(mainAxisSpacing: 15,crossAxisSpacing: 15,
-                                  crossAxisCount: 2,childAspectRatio: 1),
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            mainAxisSpacing: 15,
+                            crossAxisSpacing: 15,
+                            crossAxisCount: 2,
+                            childAspectRatio: 1,
+                          ),
                           itemCount: _files.length,
                           itemBuilder: (context, index) {
-                            final file = _files[index];
-                            final fileName = path.basenameWithoutExtension(file.path);
-                            return FutureBuilder<Uint8List?>(
-                              future: generateVideoThumbnail(file.path),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                        ConnectionState.done &&
-                                    snapshot.data != null) {
-                                  return GestureDetector(
-                                    onTap: (){
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) => VideoPlayerPage(videoPath: file.path),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      decoration: ShapeDecoration(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
-                                        )
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius:BorderRadius.circular(16),
-                                            child: Image.memory(
-                                              snapshot.data!,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                          Center(child: Text(fileName,style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500),)),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  return Center(
-                                    child:
-                                        CircularProgressIndicator(), // You can use a loading indicator here
-                                  );
-                                }
-                              },
+                            return Container(
+                              color: Colors.transparent,
+                              width:
+                                  200, // Adjust this width to your preference
+                              height:
+                                  75, // Adjust this height to your preference
+                              child: buildMediaItem(index),
                             );
-                          })),
+                          },
+                        )),
             ],
           ),
         ),

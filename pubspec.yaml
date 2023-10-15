@@ -18,6 +18,7 @@ dependencies:
   appinio_video_player:
   video_thumbnail:
   path: ^1.8.3
+  flutter_screenutil:
 
 dev_dependencies:
   flutter_test:
